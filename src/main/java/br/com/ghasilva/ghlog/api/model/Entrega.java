@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -25,6 +26,7 @@ import javax.validation.groups.Default;
 
 import br.com.ghasilva.ghlog.api.domain.Ocorrencia;
 import br.com.ghasilva.ghlog.api.domain.ValidationGroups;
+import br.com.ghasilva.ghlog.api.exception.NegocioException;
 
 @Entity
 public class Entrega {
@@ -57,7 +59,7 @@ public class Entrega {
 	@JsonProperty(access = Access.READ_ONLY)
 	private OffsetDateTime dataFinalizacao;
 	
-	@OneToMany(mappedBy = "entrega")
+	@OneToMany(mappedBy = "entrega", cascade = CascadeType.ALL)
 	private List<Ocorrencia> ocorrencias = new ArrayList<Ocorrencia>();
 
 	public Long getId() {
@@ -115,6 +117,16 @@ public class Entrega {
 	public void setDataFinalizacao(OffsetDateTime dataFinalizacao) {
 		this.dataFinalizacao = dataFinalizacao;
 	}
+	
+	
+
+	public List<Ocorrencia> getOcorrencias() {
+		return ocorrencias;
+	}
+
+	public void setOcorrencias(List<Ocorrencia> ocorrencias) {
+		this.ocorrencias = ocorrencias;
+	}
 
 	@Override
 	public int hashCode() {
@@ -131,6 +143,33 @@ public class Entrega {
 			return false;
 		Entrega other = (Entrega) obj;
 		return Objects.equals(id, other.id);
+	}
+
+	public Ocorrencia adicionarOcorrencia(String descricao) {
+		Ocorrencia ocorrencia = new Ocorrencia();
+		ocorrencia.setDescricao(descricao);
+		ocorrencia.setDataRegistro(OffsetDateTime.now());
+		ocorrencia.setEntrega(this);
+		
+		this.getOcorrencias().add(ocorrencia);
+		
+		return ocorrencia;
+		
+	}
+
+	public void finalizar() {
+		
+		if(podeSerFinalizada()) {
+			throw new NegocioException("Entrega não pode ser finalizada");
+		}
+		setStatus(StatusEntrega.FINALIZADA);
+		setDataFinalizacao(OffsetDateTime.now());
+		
+		
+	}
+	
+	public boolean podeSerFinalizada() {
+		return !StatusEntrega.PENDENTE.equals(getStatus());
 	}
 
 }
